@@ -4,37 +4,37 @@ import star from "../images/icon-star.svg";
 import del from  "../images/icon-delete-filled.svg";
 import starred from "../images/icon-star-filled.svg";
 import down from "../images/icon-chevron-down.svg";
+import { useCurrencyStore } from "../../config";
  const Markets = () => {
     const [active, setActive] = useState('History')
 
     const [selected, setSelected] = useState('History')
+    const [amount, setAmount] = useState(1000)
     const [favorite,setFavorite] = useState(0)
     const [fromCurrency,setFromCurrency] = useState('USD')
-    const [send, setSend] = useState(1000)
-    const [receive, setReceive] = useState(0)
     const [toCurrency,setToCurrency] = useState('EUR')
     const [open, setOPen] = useState(false) 
     const selectActive = ['History', 'Compare', 'Favorites', 'Log']
+
+    const {latestRate, fetchLatestRate, isLoading} = useCurrencyStore()
+    const[convertedRate, setConvertedRate] = useState(0)
+    const[loading, setisLoading] = useState(isLoading)
+useEffect(()=>{
+  fetchLatestRate()
+},[])
+    // console.log(latestRate)
+    function convert(base, quote, amount) {
+  const api = "https://api.frankfurter.dev";
+  return fetch(`${api}/v2/rate/${base}/${quote}`)
+    .then((r) => r.json())
+    .then((d) => (amount * d.rate).toFixed(2));
+}
+
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          "https://api.frankfurter.dev/v2/currencies",
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      convert(fromCurrency,toCurrency,amount).then((r) =>setConvertedRate(r))
+  }, [fromCurrency,toCurrency,favorite,amount,convertedRate]);
 
-        const data = await response.json();
-        console.log(data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
-  }, [fromCurrency,toCurrency,favorite, send,receive]);
   const currencyList = [
     "USD",
     "EUR",
@@ -60,10 +60,10 @@ import down from "../images/icon-chevron-down.svg";
           <div className="flex md:flex-row  relative px-3 py-4 w-full m-0 items-center gap-2">
             <input
               type="number"
-              value={send}
-              onChange={(e)=> setSend(e.target.value)}
+              value={amount}
+              onChange={(e)=> setAmount(e.target.value)}
               className="text-white sm:w-100 w-full font-bold text-4xl"
-              placeholder={send}
+              placeholder={amount}
             />
 
             <div className="flex gap-2 px-5 md:px-5 bg-stone-600 opacity-50 text-white rounded-xl relative">
@@ -96,8 +96,8 @@ import down from "../images/icon-chevron-down.svg";
             onClick={()=> {
                 setFromCurrency(toCurrency)
                 setToCurrency(fromCurrency)
-                setReceive(send)
-                setSend(receive)
+                // setReceive(send)
+                // setSend(receive)
             }}
             className="bg-[#3D3D3D] p-2 rotate-90 hover:bg-gray-800 lg:rotate-none lg:w-10  rounded-md cursor-pointer"
           />
@@ -105,16 +105,16 @@ import down from "../images/icon-chevron-down.svg";
 
         <div className=" bg-[#2E2E2E]  shadow-md  relative h-auto p-2 rounded-xl ">
           <p className="font-mono px-2 opacity-40 tracking-[2px] ">RECEIVE</p>
-          <div className="flex relative p-3 items-center gap-2">
+          <div className="flex relative   p-3 items-center gap-2">
             <input
               type="number"
-              value={receive}
-              onChange = {(e)=> setReceive(e.target.value)}
-              className="text-[#CEF739] sm:w-100 w-full    placeholder:font-extrabold text-xl;   font-bold text-4xl"
-              placeholder={receive}
+              value={convertedRate}
+              readOnly
+              className="text-[#CEF739] sm:w-100 w-full    placeholder:font-extrabold text-xl;  b-0 outline-0  font-bold text-4xl"
+              placeholder={convertedRate}
             />
             <div className="flex gap-2 px-5  bg-stone-600 opacity-50 text-white rounded-xl relativ">
-
+           {convertedRate}
             <select 
                value={toCurrency}
                   onChange={(e)=> setToCurrency(e.target.value)}
@@ -143,17 +143,15 @@ import down from "../images/icon-chevron-down.svg";
       <div className="flex items-center justify-center md:justify-start ">
         <h3 className="text-xl opacity-50 font-mono ">
           {" "}
-          {send} {fromCurrency} = {receive} {toCurrency}
+          {amount} {fromCurrency} = {convertedRate} {toCurrency}
         </h3>
       </div>
-
       <div onClick={()=>  {
-        if(send === 1000 && receive === 0){
+        if(amount === 0 && convertedRate === 0){
             // alert(send+receive)
             setFavorite(0)
         }
         else{
-
             setFavorite((prev)=> prev +1)
         }
         
@@ -294,11 +292,11 @@ import down from "../images/icon-chevron-down.svg";
                 <div className="bg-[#2E2E2E] w-[150px] text-white font-mono rounded-lg p-2  flex items-center justfy-between ">
 
                     {Object.entries((fav)=>{
-
+                                          <h1>{amount} {fromCurrency}</h1>
                     })}
                     <div>
-                    <h1>{send} {fromCurrency}</h1>
-                    <h1 className="text-lime-500">{receive} {toCurrency}</h1>
+                    <h1>{amount} {fromCurrency}</h1>
+                    <h1 className="text-lime-500">{convertedRate} {toCurrency}</h1>
                     </div>
                     <img onClick={()=> setFavorite((prev) => prev - 1)} className="w-5 cursor-pointer mx-auto" src={del} alt="" />
                 </div>
