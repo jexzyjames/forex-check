@@ -1,15 +1,7 @@
-import { useState } from 'react'
-import './App.css'
-import Navbar from './assets/components/Navbar'
-import Markets from './assets/components/Markets'
-function App() {
+import Markets from "./assets/components/Markets";
 
-  return (
-    <>
-    <Navbar />
-    <Markets/>
-    </>
-  )
+function App() {
+  return <Markets />;
 }
 
-export default App
+export default App;
