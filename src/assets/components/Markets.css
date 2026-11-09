@@ -864,10 +864,19 @@
 
 .currency-list {
   overflow-y: auto;
+  min-height: 0;
+  flex: 1;
   margin: 13px -7px -8px;
   padding: 0 7px 8px;
   scrollbar-color: #555 #242527;
   scrollbar-width: thin;
+}
+
+.picker-message {
+  margin: 22px 4px;
+  color: #ffb8a4;
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .list-section-title {

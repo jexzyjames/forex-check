@@ -24,6 +24,22 @@ async function fetchJson(url, signal) {
   return response.json();
 }
 
+function normalizeCurrencies(data) {
+  const entries = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? Object.entries(data).map(([code, name]) => ({ code, name }))
+      : [];
+
+  return entries
+    .map((currency) => ({
+      code: currency?.code || currency?.iso_code,
+      name: currency?.name || currency?.currency,
+    }))
+    .filter(({ code, name }) => typeof code === "string" && typeof name === "string")
+    .sort((a, b) => a.code.localeCompare(b.code));
+}
+
 async function fetchPairStats(base, quote, signal) {
   const latest = await fetchJson(`${API_BASE}/rate/${base}/${quote}`, signal);
   if (!Number.isFinite(latest.rate)) {
@@ -105,7 +121,7 @@ function CurrencyFlag({ code }) {
     : <span className="currency-flag currency-flag-fallback" aria-hidden="true">{getFlagEmoji(code)}</span>;
 }
 
-function CurrencyPicker({ side, selected, currencies, onSelect, onClose }) {
+function CurrencyPicker({ side, selected, currencies, currencyError, onSelect, onClose }) {
   const [query, setQuery] = useState("");
   const searchRef = useRef(null);
   const dialogRef = useRef(null);
@@ -194,6 +210,11 @@ function CurrencyPicker({ side, selected, currencies, onSelect, onClose }) {
           <kbd>ESC</kbd>
         </label>
         <div className="currency-list">
+          {currencies.length === 0 && (
+            <p className="picker-message" role={currencyError ? "alert" : "status"}>
+              {currencyError || "Loading available currencies…"}
+            </p>
+          )}
           {popular.length > 0 && (
             <section aria-label="Popular currencies">
               <h3 className="list-section-title">POPULAR</h3>
@@ -206,7 +227,9 @@ function CurrencyPicker({ side, selected, currencies, onSelect, onClose }) {
               {other.map(renderCurrency)}
             </section>
           )}
-          {matches.length === 0 && <p className="empty-state">No currencies match “{query}”.</p>}
+          {currencies.length > 0 && matches.length === 0 && (
+            <p className="empty-state">No currencies match “{query}”.</p>
+          )}
         </div>
       </section>
     </div>
@@ -279,11 +302,8 @@ function Markets() {
     const controller = new AbortController();
     fetchJson(`${API_BASE}/currencies`, controller.signal)
       .then((data) => {
-        if (!Array.isArray(data)) throw new Error("Currency list response was not valid.");
-        const sorted = data
-          .filter((currency) => currency?.code && currency?.name)
-          .sort((a, b) => a.code.localeCompare(b.code));
-        if (sorted.length === 0) throw new Error("No currencies are currently available.");
+        const sorted = normalizeCurrencies(data);
+        if (sorted.length === 0) throw new Error("Currency list response was not valid or contained no currencies.");
         setCurrencies(sorted);
         setCurrencyError("");
       })
@@ -777,11 +797,12 @@ function Markets() {
           <span>Rates are for informational purposes</span>
         </footer>
       </div>
-      {pickerSide && currencies.length > 0 && (
+      {pickerSide && (
         <CurrencyPicker
           side={pickerSide}
           selected={pickerSide === "from" ? fromCurrency : toCurrency}
           currencies={currencies}
+          currencyError={currencyError}
           onSelect={handleCurrencySelect}
           onClose={closeCurrencyPicker}
         />
